@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>My Deesa Shopping | Vocal for Local</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+      <style>
+          .product-card:hover { transform: translateY(-5px); transition: all 0.3s ease; }
+        .cart-drawer { transition: transform 0.3s ease-in-out; }
+    </style>
+      </head>
+      <body class="bg-gray-50 text-gray-900">
+          <nav class="bg-white shadow-md sticky top-0 z-50">
+              <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                  <h1 class="text-2xl font-bold text-blue-600">My Deesa Shopping</h1>
+            <button onclick="toggleCart()" class="relative p-2">
+                <i class="fas fa-shopping-cart text-xl"></i>
+                <span id="cart-count" class="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+                  </button>
+              </div>
+          </nav>
+          <main class="container mx-auto px-4 py-8">
+              <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+          </main>
+          <div id="cart-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden" onclick="toggleCart()"></div>
+    <div id="cart-drawer" class="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-[70] transform translate-x-full flex flex-col transition-transform">
+              <div class="p-4 border-b flex justify-between">
+                  <h3 class="text-xl font-bold">Cart</h3>
+                  <button onclick="toggleCart()" class="text-2xl">&times;</button>
+              </div>
+              <div id="cart-items" class="flex-grow p-4 overflow-y-auto"></div>
+              <div class="p-4 border-t">
+                  <div class="text-xl font-bold mb-4">Total: a Rs.<span id="cart-total">0</span></div>
+            <button onclick="showCheckout()" class="w-full bg-blue-600 text-white py-3 rounded-lg">Checkout</button>
+        </div>
+    </div>
+          <div id="checkout-modal" class="fixed inset-0 bg-black bg-opacity-70 z-[80] hidden flex items-center justify-center p-4">
+              <div class="bg-white p-6 rounded-xl max-w-lg w-full">
+                  <h3 class="text-xl font-bold mb-4">Checkout</h3>
+                  <form id="checkout-form" class="space-y-3">
+                      <input type="text" id="name" placeholder="Name" required class="w-full p-2 border rounded">
+                      <input type="tel" id="phone" placeholder="Phone" required class="w-full p-2 border rounded">
+                      <textarea id="address" placeholder="Address" required class="w-full p-2 border rounded"></textarea>
+                      <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg">Pay with Razorpay</button>
+                  </form>
+                  <button onclick="hideCheckout()" class="mt-4 text-gray-500 w-full text-center">Cancel</button>
+              </div>
+          </div>
+          <script>
+              const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYyFPzhjSOOAyGEwJ6D4JzhrwJdgnfLG7cnppPU2DC5iT4JRmCQ0Y7MFK1d93nNJuT9n1ebjLt_j8w/pub?gid=0&single=true&output=csv';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7FcRGU-yBrEI6RY_5i8z_425ocBqYqU3szDgrVsvpMqucywzfHXy78EM4vVnx05A3/exec';
+        let products = [], cart = [];
+        async function load() {
+                      const res = await fetch(CSV_URL);
+            const text = await res.text();
+            const lines = text.split('\n');
+            const headers = lines[0].split(',');
+            products = lines.slice(1).map(l => {
+                              const v = l.split(',');
+                              return headers.reduce((o, h, i) => ({...o, [h.trim()]: v[i]?.trim()}), {});
+        });
+            document.getElementById('product-grid').innerHTML = products.map((p,i) => `
+                              <div class="bg-white p-4 border rounded-xl shadow-sm">
+                                  <img src="${p.Thumbnail}" class="w-full h-40 object-cover rounded mb-2">
+                                  <h3 class="font-bold">${p.Name}</h3>
+                                  <p class="text-xl font-bold">Rs.${p.Price}</p>
+                                  <button onclick="add(${i})" class="w-full bg-blue-600 text-white py-2 rounded mt-2">Add</button>
+                              </div>`).join('');
+}
+        function add(i) { 
+            const p = products[i];
+            const item = cart.find(x => x.Name === p.Name);
+            if(item) item.q++; else cart.push({...p, q:1});
+            update(); toggleCart();
+        }
+        function update() {
+                      const items = document.getElementById('cart-items');
+            items.innerHTML = cart.map(x => `<div class="flex justify-between border-b py-2"><p>${x.Name} x ${x.q}</p><p>Rs.${x.Price * x.q}</p></div>`).join('');
+            const total = cart.reduce((s, x) => s + x.Price * x.q, 0);
+            document.getElementById('cart-total').textContent = total;
+            document.getElementById('cart-count').textContent = cart.length;
+            document.getElementById('cart-count').classList.toggle('hidden', cart.length === 0);
+}
+        function toggleCart() {
+                      document.getElementById('cart-drawer').classList.toggle('translate-x-full');
+            document.getElementById('cart-overlay').classList.toggle('hidden');
+        }
+        function showCheckout() { document.getElementById('checkout-modal').classList.remove('hidden'); }
+        function hideCheckout() { document.getElementById('checkout-modal').classList.add('hidden'); }
+        document.getElementById('checkout-form').onsubmit = (e) => {
+                      e.preventDefault();
+            const data = {
+                              name: document.getElementById('name').value,
+                                                phone: document.getElementById('phone').value,
+                                                address: document.getElementById('address').value,
+                                                products: JSON.stringify(cart),
+                                                total: document.getElementById('cart-total').textContent
+                                };
+            var options = {
+                "key": "rzp_live_XXXXXXXXXXXXXX",
+                              "amount": data.total * 100,
+                              "name": "My Deesa Shopping",
+                              "handler": function() { fetch(SCRIPT_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(data)}); alert('Order Placed!'); location.reload(); }
+};
+            new Razorpay(options).open();
+};
+        load();
+    </script>
+      </body>
+      </html>
