@@ -769,17 +769,15 @@ function initiatePayment() {
     theme: { color: '#e85d04' },
     handler: function(response) {
       const orderData = {
-        orderId: orderNo,
-        customer: {
-          name: name,
-          email: email,
-          phone: phone,
-          address: fullAddress
-        },
-        items: cart.map(i => ({ name: i.name, quantity: i.qty, price: i.price })),
-        total: total,
-        paymentMethod: 'Razorpay (' + shipping + ')',
-        paymentId: response.razorpay_payment_id
+        action: 'addOrder',
+        orderNo, name, email, phone,
+        payment: 'Razorpay',
+        transactionId: response.razorpay_payment_id,
+        shippingMethod: shipping,
+        address: fullAddress,
+        zipCode: zip,
+        products: productsStr,
+        orderTotal: total
       };
       submitOrder(orderData);
     }
