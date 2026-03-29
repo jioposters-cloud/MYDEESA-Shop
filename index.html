@@ -463,7 +463,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <script>
 // ─── CONFIG ──────────────────────────────────────────────────────
 const SHEET_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYyFPzhjSOOAyGEwJ6D4JzhrwJdgnfLG7cnppPU2DC5iT4JRmCQ0Y7MFK1d93nNJuT9n1ebjLt_j8w/pub?gid=0&single=true&output=csv';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7FcRGU-yBrEI6RY_5i8z_425ocBqYqU3szDgrVsvpMqucywzfHXy78EM4vVnx05A3/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyMjLTN6yMHb192iUWPeP8NOhmzVy3uCTqJ1fZazmRAz9Vv77nVj-hEtXc2oRJdgD2Q/exec';
 const RAZORPAY_KEY = 'rzp_live_RycGGdBVVqAFT9';
 
 // ─── STATE ───────────────────────────────────────────────────────
@@ -769,15 +769,17 @@ function initiatePayment() {
     theme: { color: '#e85d04' },
     handler: function(response) {
       const orderData = {
-        action: 'addOrder',
-        orderNo, name, email, phone,
-        payment: 'Razorpay',
-        transactionId: response.razorpay_payment_id,
-        shippingMethod: shipping,
-        address: fullAddress,
-        zipCode: zip,
-        products: productsStr,
-        orderTotal: total
+        orderId: orderNo,
+        customer: {
+          name: name,
+          email: email,
+          phone: phone,
+          address: fullAddress
+        },
+        items: cart.map(i => ({ name: i.name, quantity: i.qty, price: i.price })),
+        total: total,
+        paymentMethod: 'Razorpay (' + shipping + ')',
+        paymentId: response.razorpay_payment_id
       };
       submitOrder(orderData);
     }
@@ -791,8 +793,7 @@ async function submitOrder(data) {
   try {
     await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
-      body: JSON.stringify(data),
-      headers: { 'Content-Type': 'application/json' }
+      body: JSON.stringify(data)
     });
   } catch(e) { console.warn('Order submission error:', e); }
   cart = [];
