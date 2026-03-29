@@ -770,14 +770,31 @@ function initiatePayment() {
     handler: function(response) {
       const orderData = {
         action: 'addOrder',
-        orderNo, name, email, phone,
+        orderNo: orderNo, 
+        name: name, 
+        email: email, 
+        phone: phone,
         payment: 'Razorpay',
         transactionId: response.razorpay_payment_id,
         shippingMethod: shipping,
         address: fullAddress,
         zipCode: zip,
         products: productsStr,
-        orderTotal: total
+        orderTotal: total,
+        
+        orderId: orderNo,
+        customer: {
+          name: name,
+          email: email,
+          phone: phone,
+          address: fullAddress,
+          city: city,
+          zipcode: zip
+        },
+        items: cart.map(i => ({ name: i.name, quantity: i.qty, price: i.price })),
+        total: total,
+        paymentMethod: 'Razorpay (' + shipping + ')',
+        paymentId: response.razorpay_payment_id
       };
       submitOrder(orderData);
     }
